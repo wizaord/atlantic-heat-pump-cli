@@ -1,0 +1,35 @@
+name: Release
+
+on:
+  push:
+    tags: [ 'v*' ]
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - run: ./gradlew test
+
+      - run: ./gradlew shadowJar
+
+      - name: Rename jar with version
+        run: |
+          VERSION=${GITHUB_REF_NAME#v}
+          cp build/libs/atlantic-heat-pump-cli-*-all.jar "atlantic-heat-pump-cli-${VERSION}.jar"
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: atlantic-heat-pump-cli-*.jar
