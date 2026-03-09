@@ -1,10 +1,12 @@
 .gradle/
 build/
-!gradle/wrapper/gradle-wrapper.jar
 *.class
-*.jar
 *.log
 .idea/
 *.iml
 .DS_Store
 /.kotlin/
+
+# Ignore all jars except gradle wrapper
+*.jar
+!gradle/wrapper/gradle-wrapper.jar
