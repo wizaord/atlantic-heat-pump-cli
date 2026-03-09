@@ -12,7 +12,7 @@ A command-line tool to control Atlantic/Fujitsu heat pumps via the Atlantic Mage
 
 ## Requirements
 
-- Java 21+
+- Java 17+
 - An Atlantic CozyTouch account (email/password)
 
 ## Build
