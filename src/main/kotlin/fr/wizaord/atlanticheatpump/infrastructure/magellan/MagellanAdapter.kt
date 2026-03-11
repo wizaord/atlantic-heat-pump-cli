@@ -23,7 +23,8 @@ class MagellanAdapter(private val client: MagellanClient) : AcPort {
     // Capability IDs for AC devices
     private val capHvacMode = 7
     private val capCurrentTemp = 117
-    private val capTargetTemp = 177
+    private val capTargetTempHeat = 40   // target temperature in heating mode
+    private val capTargetTempCool = 177  // target temperature in cooling mode
 
     // HVAC mode values
     private val hvacOff = "0"
@@ -73,7 +74,11 @@ class MagellanAdapter(private val client: MagellanClient) : AcPort {
 
     override suspend fun setTemperature(deviceUrl: String, temperature: Double) {
         val deviceId = deviceUrl.toInt()
-        client.writeCapability(deviceId, capTargetTemp, temperature.toString())
+        val capabilities = client.getCapabilities(deviceId)
+        val capMap = capabilities.associateBy { it.capabilityId }
+        val hvacModeValue = capMap[capHvacMode]?.value
+        val targetCapId = if (hvacModeValue == hvacHeat) capTargetTempHeat else capTargetTempCool
+        client.writeCapability(deviceId, targetCapId, temperature.toString())
     }
 
     private fun mapToAcState(capabilities: List<MagellanCapability>): AcState {
@@ -88,9 +93,10 @@ class MagellanAdapter(private val client: MagellanClient) : AcPort {
         }
 
         val currentTemp = capMap[capCurrentTemp]?.value?.toDoubleOrNull()
-        val targetTemp = capMap[capTargetTemp]?.value?.toDoubleOrNull()
+        val targetCapId = if (hvacModeValue == hvacHeat) capTargetTempHeat else capTargetTempCool
+        val targetTemp = capMap[targetCapId]?.value?.toDoubleOrNull()
 
-        logger.debug("Capabilities: hvacMode={}, currentTemp={}, targetTemp={}", hvacModeValue, currentTemp, targetTemp)
+        logger.debug("Capabilities: hvacMode={}, currentTemp={}, targetTemp={} (cap {})", hvacModeValue, currentTemp, targetTemp, targetCapId)
 
         return AcState(
             isOn = isOn,
