@@ -103,12 +103,12 @@ class MagellanIntegrationTest {
     }
 
     @Test
-    fun `setTemperature envoie capabilityId 177`() = runBlocking {
+    fun `setTemperature envoie capabilityId 40 en mode chauffage`() = runBlocking {
         acPort.setTemperature("100", 21.5)
 
         assertEquals(1, server.capturedCommands.size)
         val cmd = server.capturedCommands[0]
-        assertEquals(177, cmd.capabilityId)
+        assertEquals(40, cmd.capabilityId)
         assertEquals("21.5", cmd.value)
     }
 }

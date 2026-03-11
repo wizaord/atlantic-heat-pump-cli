@@ -54,8 +54,9 @@ class FakeMagellanServer {
     private val capabilitiesJson = """
         [
             {"capabilityId": 7, "value": "4"},
+            {"capabilityId": 40, "value": "24.0"},
             {"capabilityId": 117, "value": "22.5"},
-            {"capabilityId": 177, "value": "24.0"}
+            {"capabilityId": 177, "value": "28.0"}
         ]
     """.trimIndent()
 
