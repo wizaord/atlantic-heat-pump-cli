@@ -4,6 +4,7 @@ import fr.wizaord.atlanticheatpump.domain.model.AcDevice
 import fr.wizaord.atlanticheatpump.domain.model.AcMode
 import fr.wizaord.atlanticheatpump.domain.model.AcState
 import fr.wizaord.atlanticheatpump.domain.model.FanSpeed
+import fr.wizaord.atlanticheatpump.domain.model.SwingMode
 import fr.wizaord.atlanticheatpump.domain.port.AcPort
 import org.slf4j.LoggerFactory
 
@@ -17,6 +18,8 @@ import org.slf4j.LoggerFactory
  *  177    = target cool temperature
  *  184    = prog mode (on/off)
  *  100801 = fan speed set by user (1=QUIET, 2=SPEED_2, 3=SPEED_3, 4=SPEED_4, 5=AUTO)
+ *  100803 = air flow direction / vane position (1-4, only effective when swing is off)
+ *  100804 = swing toggle (0=fixed, 1=oscillating)
  */
 class MagellanAdapter(private val client: MagellanClient) : AcPort {
 
@@ -32,6 +35,8 @@ class MagellanAdapter(private val client: MagellanClient) : AcPort {
     private val capTargetTempHeat = 40   // target temperature in heating mode
     private val capTargetTempCool = 177  // target temperature in cooling mode
     private val capFanSpeed = 100801     // fan speed set by user
+    private val capAirFlowDirection = 100803  // vane position (1-4)
+    private val capSwingToggle = 100804       // swing on/off
 
     // HVAC mode values
     private val hvacOff = "0"
@@ -93,6 +98,17 @@ class MagellanAdapter(private val client: MagellanClient) : AcPort {
         client.writeCapability(deviceId, capFanSpeed, fanSpeed.apiValue.toString())
     }
 
+    override suspend fun setSwingMode(deviceUrl: String, swingMode: SwingMode) {
+        val deviceId = deviceUrl.toInt()
+        if (swingMode == SwingMode.SWING) {
+            client.writeCapability(deviceId, capSwingToggle, "1")
+        } else {
+            // Must turn off swing first, then set the fixed position
+            client.writeCapability(deviceId, capSwingToggle, "0")
+            client.writeCapability(deviceId, capAirFlowDirection, swingMode.positionValue.toString())
+        }
+    }
+
     private fun mapToAcState(capabilities: List<MagellanCapability>): AcState {
         val capMap = capabilities.associateBy { it.capabilityId }
 
@@ -110,8 +126,11 @@ class MagellanAdapter(private val client: MagellanClient) : AcPort {
         val targetCapId = if (effectiveModeValue == hvacHeat) capTargetTempHeat else capTargetTempCool
         val targetTemp = capMap[targetCapId]?.value?.toDoubleOrNull()
         val fanSpeed = capMap[capFanSpeed]?.value?.toIntOrNull()?.let { FanSpeed.fromValue(it) }
+        val swingOn = capMap[capSwingToggle]?.value?.toIntOrNull() == 1
+        val airFlowDirection = capMap[capAirFlowDirection]?.value?.toIntOrNull() ?: 0
+        val swingMode = SwingMode.fromValues(swingOn, airFlowDirection)
 
-        logger.debug("Capabilities: hvacMode={}, effectiveMode={}, currentTemp={}, targetTemp={} (cap {}), fanSpeed={}", hvacModeValue, effectiveModeValue, currentTemp, targetTemp, targetCapId, fanSpeed)
+        logger.debug("Capabilities: hvacMode={}, effectiveMode={}, currentTemp={}, targetTemp={} (cap {}), fanSpeed={}, swingMode={}", hvacModeValue, effectiveModeValue, currentTemp, targetTemp, targetCapId, fanSpeed, swingMode)
 
         return AcState(
             isOn = isOn,
@@ -119,6 +138,7 @@ class MagellanAdapter(private val client: MagellanClient) : AcPort {
             targetTemp = targetTemp,
             mode = mode,
             fanSpeed = fanSpeed,
+            swingMode = swingMode,
         )
     }
 

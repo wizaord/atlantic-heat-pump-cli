@@ -57,7 +57,9 @@ class FakeMagellanServer {
             {"capabilityId": 40, "value": "24.0"},
             {"capabilityId": 117, "value": "22.5"},
             {"capabilityId": 177, "value": "28.0"},
-            {"capabilityId": 100801, "value": "1"}
+            {"capabilityId": 100801, "value": "1"},
+            {"capabilityId": 100803, "value": "2"},
+            {"capabilityId": 100804, "value": "0"}
         ]
     """.trimIndent()
 

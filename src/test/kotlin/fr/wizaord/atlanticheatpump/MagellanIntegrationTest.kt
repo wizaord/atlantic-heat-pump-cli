@@ -3,6 +3,7 @@ package fr.wizaord.atlanticheatpump
 import fr.wizaord.atlanticheatpump.domain.model.AcConfig
 import fr.wizaord.atlanticheatpump.domain.model.AcMode
 import fr.wizaord.atlanticheatpump.domain.model.FanSpeed
+import fr.wizaord.atlanticheatpump.domain.model.SwingMode
 import fr.wizaord.atlanticheatpump.domain.port.AcPort
 import fr.wizaord.atlanticheatpump.infrastructure.magellan.MagellanAdapter
 import fr.wizaord.atlanticheatpump.infrastructure.magellan.MagellanClient
@@ -61,6 +62,7 @@ class MagellanIntegrationTest {
         assertEquals(24.0, status.targetTemp)
         assertEquals(AcMode.HEATING, status.mode)
         assertEquals(FanSpeed.QUIET, status.fanSpeed)
+        assertEquals(SwingMode.POSITION_2, status.swingMode)
     }
 
     @Test
@@ -153,5 +155,42 @@ class MagellanIntegrationTest {
         val cmd = server.capturedCommands[0]
         assertEquals(7, cmd.capabilityId)
         assertEquals("1", cmd.value)
+    }
+
+    @Test
+    fun `setSwingMode SWING envoie capabilityId 100804 a 1`() = runBlocking {
+        acPort.setSwingMode("100", SwingMode.SWING)
+
+        assertEquals(1, server.capturedCommands.size)
+        val cmd = server.capturedCommands[0]
+        assertEquals(100, cmd.deviceId)
+        assertEquals(100804, cmd.capabilityId)
+        assertEquals("1", cmd.value)
+    }
+
+    @Test
+    fun `setSwingMode POSITION_3 desactive swing puis ecrit la position`() = runBlocking {
+        acPort.setSwingMode("100", SwingMode.POSITION_3)
+
+        assertEquals(2, server.capturedCommands.size)
+        val swingOff = server.capturedCommands[0]
+        assertEquals(100804, swingOff.capabilityId)
+        assertEquals("0", swingOff.value)
+        val position = server.capturedCommands[1]
+        assertEquals(100803, position.capabilityId)
+        assertEquals("3", position.value)
+    }
+
+    @Test
+    fun `setSwingMode POSITION_1 envoie la position 1`() = runBlocking {
+        acPort.setSwingMode("100", SwingMode.POSITION_1)
+
+        assertEquals(2, server.capturedCommands.size)
+        val swingOff = server.capturedCommands[0]
+        assertEquals(100804, swingOff.capabilityId)
+        assertEquals("0", swingOff.value)
+        val position = server.capturedCommands[1]
+        assertEquals(100803, position.capabilityId)
+        assertEquals("1", position.value)
     }
 }

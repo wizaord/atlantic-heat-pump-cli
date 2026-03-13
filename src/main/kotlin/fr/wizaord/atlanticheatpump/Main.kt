@@ -14,6 +14,7 @@ fun main(args: Array<String>) {
             ModeCommand(),
             TempCommand(),
             FanCommand(),
+            SwingCommand(),
         )
         .main(args)
 }

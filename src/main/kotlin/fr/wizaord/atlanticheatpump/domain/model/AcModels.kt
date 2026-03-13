@@ -15,12 +15,29 @@ enum class FanSpeed(val label: String, val apiValue: Int) {
     }
 }
 
+enum class SwingMode(val label: String, val positionValue: Int) {
+    POSITION_1("position 1 (highest)", 1),
+    POSITION_2("position 2", 2),
+    POSITION_3("position 3", 3),
+    POSITION_4("position 4 (lowest)", 4),
+    SWING("swing", -1),
+    UNKNOWN("unknown", -1);
+
+    companion object {
+        fun fromValues(swingOn: Boolean, position: Int): SwingMode {
+            if (swingOn) return SWING
+            return entries.find { it != UNKNOWN && it != SWING && it.positionValue == position } ?: UNKNOWN
+        }
+    }
+}
+
 data class AcState(
     val isOn: Boolean = false,
     val currentTemp: Double? = null,
     val targetTemp: Double? = null,
     val mode: AcMode = AcMode.AUTO,
     val fanSpeed: FanSpeed? = null,
+    val swingMode: SwingMode? = null,
 )
 
 data class AcDevice(
