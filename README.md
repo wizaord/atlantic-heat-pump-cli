@@ -5,10 +5,11 @@ A command-line tool to control Atlantic/Fujitsu heat pumps via the Atlantic Mage
 ## Features
 
 - List all devices on your account
-- Check device status (on/off, mode, current and target temperature)
+- Check device status (on/off, mode, current and target temperature, fan speed)
 - Turn devices on/off
 - Switch mode (heat, cool, auto)
 - Set target temperature
+- Set fan speed (quiet, 2, 3, 4, auto)
 
 ## Requirements
 
@@ -61,6 +62,13 @@ atlantic-heat-pump mode auto
 # Set target temperature
 atlantic-heat-pump temp --set 22.5
 atlantic-heat-pump temp --set 20 --device <device-url>
+
+# Set fan speed
+atlantic-heat-pump fan quiet
+atlantic-heat-pump fan 2
+atlantic-heat-pump fan 3
+atlantic-heat-pump fan 4
+atlantic-heat-pump fan auto --device <device-url>
 ```
 
 All commands that target a device accept `--device` / `-d`. If omitted, the first device found is used.
@@ -74,9 +82,9 @@ alias atlantic-heat-pump='java -jar /path/to/atlantic-heat-pump-cli-1.0.0-all.ja
 ## Architecture
 
 ```
-domain/          Pure models (AcConfig, AcDevice, AcState) and port interface (AcPort)
+domain/          Pure models (AcConfig, AcDevice, AcState, AcMode, FanSpeed) and port interface (AcPort)
 infrastructure/  Magellan API client and port factory
-cli/             Clikt commands (devices, status, power, mode, temp)
+cli/             Clikt commands (devices, status, power, mode, temp, fan)
 Main.kt          Composition root
 ```
 

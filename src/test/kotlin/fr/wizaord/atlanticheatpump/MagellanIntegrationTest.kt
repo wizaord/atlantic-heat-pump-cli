@@ -2,6 +2,7 @@ package fr.wizaord.atlanticheatpump
 
 import fr.wizaord.atlanticheatpump.domain.model.AcConfig
 import fr.wizaord.atlanticheatpump.domain.model.AcMode
+import fr.wizaord.atlanticheatpump.domain.model.FanSpeed
 import fr.wizaord.atlanticheatpump.domain.port.AcPort
 import fr.wizaord.atlanticheatpump.infrastructure.magellan.MagellanAdapter
 import fr.wizaord.atlanticheatpump.infrastructure.magellan.MagellanClient
@@ -59,6 +60,7 @@ class MagellanIntegrationTest {
         assertEquals(22.5, status.currentTemp)
         assertEquals(24.0, status.targetTemp)
         assertEquals(AcMode.HEATING, status.mode)
+        assertEquals(FanSpeed.QUIET, status.fanSpeed)
     }
 
     @Test
@@ -110,5 +112,46 @@ class MagellanIntegrationTest {
         val cmd = server.capturedCommands[0]
         assertEquals(40, cmd.capabilityId)
         assertEquals("21.5", cmd.value)
+    }
+
+    @Test
+    fun `setFanSpeed envoie capabilityId 100801 avec la bonne valeur`() = runBlocking {
+        acPort.setFanSpeed("100", FanSpeed.SPEED_3)
+
+        assertEquals(1, server.capturedCommands.size)
+        val cmd = server.capturedCommands[0]
+        assertEquals(100, cmd.deviceId)
+        assertEquals(100801, cmd.capabilityId)
+        assertEquals("3", cmd.value)
+    }
+
+    @Test
+    fun `setFanSpeed auto envoie la valeur 5`() = runBlocking {
+        acPort.setFanSpeed("100", FanSpeed.AUTO)
+
+        assertEquals(1, server.capturedCommands.size)
+        val cmd = server.capturedCommands[0]
+        assertEquals(100801, cmd.capabilityId)
+        assertEquals("5", cmd.value)
+    }
+
+    @Test
+    fun `setFanSpeed quiet envoie la valeur 1`() = runBlocking {
+        acPort.setFanSpeed("100", FanSpeed.QUIET)
+
+        assertEquals(1, server.capturedCommands.size)
+        val cmd = server.capturedCommands[0]
+        assertEquals(100801, cmd.capabilityId)
+        assertEquals("1", cmd.value)
+    }
+
+    @Test
+    fun `setMode auto envoie HVAC mode 1`() = runBlocking {
+        acPort.setMode("100", AcMode.AUTO)
+
+        assertEquals(1, server.capturedCommands.size)
+        val cmd = server.capturedCommands[0]
+        assertEquals(7, cmd.capabilityId)
+        assertEquals("1", cmd.value)
     }
 }

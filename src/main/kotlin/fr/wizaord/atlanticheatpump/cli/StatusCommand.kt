@@ -21,5 +21,6 @@ class StatusCommand : CliktCommand(name = "status") {
         echo("  Mode       : ${acState.mode.name.lowercase()}")
         acState.currentTemp?.let { echo("  Current    : $it C") }
         acState.targetTemp?.let { echo("  Target     : $it C") }
+        acState.fanSpeed?.let { echo("  Fan speed  : ${it.label}") }
     } }
 }

@@ -3,15 +3,20 @@ package fr.wizaord.atlanticheatpump.infrastructure.magellan
 import fr.wizaord.atlanticheatpump.domain.model.AcDevice
 import fr.wizaord.atlanticheatpump.domain.model.AcMode
 import fr.wizaord.atlanticheatpump.domain.model.AcState
+import fr.wizaord.atlanticheatpump.domain.model.FanSpeed
 import fr.wizaord.atlanticheatpump.domain.port.AcPort
 import org.slf4j.LoggerFactory
 
 /**
  * AC capability IDs (for modelIds 557-561):
- *  7/8 = HVAC mode (0=OFF, 1=AUTO, 3=COOL, 4=HEAT, 7=FAN_ONLY, 8=DRY)
- *  117 = current temperature zone 1
- *  177 = target cool temperature
- *  184 = prog mode (on/off)
+ *  7      = HVAC mode (0=OFF, 1=AUTO, 3=COOL, 4=HEAT, 7=FAN_ONLY, 8=DRY)
+ *  40     = target temperature in heating mode
+ *  73     = last active HVAC mode before turning off (used to pick the right target when OFF)
+ *  117    = current temperature zone 1
+ *  172    = fan speed reported by unit (always 7=auto regardless of user setting - not usable)
+ *  177    = target cool temperature
+ *  184    = prog mode (on/off)
+ *  100801 = fan speed set by user (1=QUIET, 2=SPEED_2, 3=SPEED_3, 4=SPEED_4, 5=AUTO)
  */
 class MagellanAdapter(private val client: MagellanClient) : AcPort {
 
@@ -22,9 +27,11 @@ class MagellanAdapter(private val client: MagellanClient) : AcPort {
 
     // Capability IDs for AC devices
     private val capHvacMode = 7
+    private val capLastActiveMode = 73  // last active mode before turning off
     private val capCurrentTemp = 117
     private val capTargetTempHeat = 40   // target temperature in heating mode
     private val capTargetTempCool = 177  // target temperature in cooling mode
+    private val capFanSpeed = 100801     // fan speed set by user
 
     // HVAC mode values
     private val hvacOff = "0"
@@ -81,28 +88,37 @@ class MagellanAdapter(private val client: MagellanClient) : AcPort {
         client.writeCapability(deviceId, targetCapId, temperature.toString())
     }
 
+    override suspend fun setFanSpeed(deviceUrl: String, fanSpeed: FanSpeed) {
+        val deviceId = deviceUrl.toInt()
+        client.writeCapability(deviceId, capFanSpeed, fanSpeed.apiValue.toString())
+    }
+
     private fun mapToAcState(capabilities: List<MagellanCapability>): AcState {
         val capMap = capabilities.associateBy { it.capabilityId }
 
         val hvacModeValue = capMap[capHvacMode]?.value
         val isOn = hvacModeValue != null && hvacModeValue != hvacOff
-        val mode = when (hvacModeValue) {
+        // When OFF, use the last active mode (cap 73) to reflect the actual last used mode
+        val effectiveModeValue = if (hvacModeValue == hvacOff) capMap[capLastActiveMode]?.value else hvacModeValue
+        val mode = when (effectiveModeValue) {
             hvacHeat -> AcMode.HEATING
             hvacCool -> AcMode.COOLING
             else -> AcMode.AUTO
         }
 
         val currentTemp = capMap[capCurrentTemp]?.value?.toDoubleOrNull()
-        val targetCapId = if (hvacModeValue == hvacHeat) capTargetTempHeat else capTargetTempCool
+        val targetCapId = if (effectiveModeValue == hvacHeat) capTargetTempHeat else capTargetTempCool
         val targetTemp = capMap[targetCapId]?.value?.toDoubleOrNull()
+        val fanSpeed = capMap[capFanSpeed]?.value?.toIntOrNull()?.let { FanSpeed.fromValue(it) }
 
-        logger.debug("Capabilities: hvacMode={}, currentTemp={}, targetTemp={} (cap {})", hvacModeValue, currentTemp, targetTemp, targetCapId)
+        logger.debug("Capabilities: hvacMode={}, effectiveMode={}, currentTemp={}, targetTemp={} (cap {}), fanSpeed={}", hvacModeValue, effectiveModeValue, currentTemp, targetTemp, targetCapId, fanSpeed)
 
         return AcState(
             isOn = isOn,
             currentTemp = currentTemp,
             targetTemp = targetTemp,
             mode = mode,
+            fanSpeed = fanSpeed,
         )
     }
 

@@ -13,6 +13,7 @@ fun main(args: Array<String>) {
             PowerCommand(),
             ModeCommand(),
             TempCommand(),
+            FanCommand(),
         )
         .main(args)
 }

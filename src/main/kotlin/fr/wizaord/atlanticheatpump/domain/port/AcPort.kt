@@ -3,6 +3,7 @@ package fr.wizaord.atlanticheatpump.domain.port
 import fr.wizaord.atlanticheatpump.domain.model.AcDevice
 import fr.wizaord.atlanticheatpump.domain.model.AcMode
 import fr.wizaord.atlanticheatpump.domain.model.AcState
+import fr.wizaord.atlanticheatpump.domain.model.FanSpeed
 
 interface AcPort {
     suspend fun listDevices(): List<AcDevice>
@@ -11,4 +12,5 @@ interface AcPort {
     suspend fun turnOff(deviceUrl: String)
     suspend fun setMode(deviceUrl: String, mode: AcMode)
     suspend fun setTemperature(deviceUrl: String, temperature: Double)
+    suspend fun setFanSpeed(deviceUrl: String, fanSpeed: FanSpeed)
 }
